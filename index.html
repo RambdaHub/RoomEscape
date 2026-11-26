@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3시 47분 — 공포 방탈출</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=East+Sea+Dokdo&family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 속삭이듯 짧은 문장, 서늘하고 조용한 공포
+   IDEA: 손전등 하나로 더듬는 정전된 아이 방 — 화면 자체가 어둠
+   PICTURE: 방 전체를 그린 SVG 장면, 손가락/커서를 따라가는 손전등 원
+   COLOUR and TYPE: 먹색 #070505, 촛농빛 #d9ccb0, 말라붙은 피 #8a1010, 자외선 보라 #b98cff / East Sea Dokdo, Gowun Batang, Nanum Pen Script
+   LAYOUT: 상단 타이머 줄, 가운데 방, 아래 소지품과 독백 한 줄 */
+:root{color-scheme:dark;--bg:#070505;--ink:#d9ccb0;--dim:#8b8070;--blood:#8a1010;--uv:#b98cff;--paper:#1a1512}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Gowun Batang",serif;overflow-x:clip;min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--uv);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:12px max(3vw,10px) 24px}
+.hud{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.hud h1{font:400 clamp(32px,6vw,46px)/1 "East Sea Dokdo",cursive;margin:0;color:#c9b99a;letter-spacing:1px;flex:1}
+.timer{font:700 20px/1 "Gowun Batang";font-variant-numeric:tabular-nums;padding:10px 12px;border:1px solid #3a2a22;border-radius:6px;white-space:nowrap}
+.timer.low{color:#ff5a4a;border-color:var(--blood);animation:pulse 1.1s infinite}
+.btn{background:#14100d;border:1px solid #3a2a22;border-radius:6px;min-height:44px;padding:8px 14px}
+.btn:hover{border-color:#6b4a3a}
+.btn.red{background:#3a0808;border-color:var(--blood)}
+.stage{position:relative;width:100%;aspect-ratio:8/7;max-height:78vh;margin:0 auto;border-radius:8px;overflow:hidden;touch-action:none;background:#000;box-shadow:0 0 0 1px #221814,0 20px 60px #000}
+.stage svg{position:absolute;inset:0;width:100%;height:100%}
+.obj{cursor:pointer}.obj .hit{fill:transparent}
+.uvt{opacity:0;transition:opacity .4s}
+body.uv .uvt{opacity:1}
+.dark{position:absolute;inset:0;pointer-events:none;--x:50%;--y:45%;--r:24%;
+ background:radial-gradient(circle at var(--x) var(--y),rgba(255,230,180,.06) 0,rgba(0,0,0,0) calc(var(--r)*.45),rgba(0,0,0,.88) var(--r),rgba(0,0,0,.975) calc(var(--r)*1.7))}
+body.uv .dark{background:radial-gradient(circle at var(--x) var(--y),rgba(140,60,255,.22) 0,rgba(60,0,140,.1) calc(var(--r)*.45),rgba(0,0,0,.9) var(--r),rgba(0,0,0,.98) calc(var(--r)*1.6))}
+.dark.flick{animation:flick .9s steps(2) 1}
+.say{min-height:3.2em;margin:10px 2px 6px;font-size:17px;color:#cbbd9f}
+.inv{display:flex;gap:8px;flex-wrap:wrap}
+.inv .empty{color:var(--dim);font-size:14px;padding:10px 0}
+.item{display:flex;align-items:center;gap:8px;background:#120e0b;border:1px solid #33251d;border-radius:6px;min-height:48px;padding:6px 12px}
+.item.on{border-color:var(--uv);box-shadow:0 0 14px rgba(185,140,255,.35);color:#e6d8ff}
+.item svg{width:26px;height:26px;flex:none}
+.foot{margin-top:14px;font-size:13px;color:var(--dim)}
+.layer{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.82)}
+.layer.show{display:flex}
+.panel{width:min(460px,100%);max-height:90vh;overflow:auto;background:var(--paper);border:1px solid #3a2a22;border-radius:10px;padding:20px;box-shadow:0 20px 80px #000}
+.panel h2{font:400 34px/1.05 "East Sea Dokdo";margin:0 0 10px;color:#d4c4a4}
+.panel p{margin:.4em 0}
+.note{font:24px/1.35 "Nanum Pen Script",cursive;color:#2a1d14;background:#c9b896;padding:16px 18px;border-radius:3px;transform:rotate(-1deg);box-shadow:inset 0 0 40px rgba(80,40,10,.45)}
+.uvnote{font:26px/1.3 "Nanum Pen Script";color:var(--uv);text-shadow:0 0 10px rgba(185,140,255,.8);text-align:center;padding:14px}
+.mirror{transform:scaleX(-1);display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.wheels{display:flex;gap:8px;justify-content:center;margin:12px 0}
+.wheel{display:grid;gap:4px;justify-items:center}
+.wheel b{font:700 34px/1 "Gowun Batang";width:52px;text-align:center;padding:10px 0;background:#0c0907;border:1px solid #4a3528;border-radius:6px}
+.wheel button{width:52px;min-height:40px;background:#16110d;border:1px solid #33251d;border-radius:6px}
+.keys{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:12px}
+.keys button{min-height:64px;background:linear-gradient(#e8dfc8,#b8ab8c);color:#2a1d14;border:0;border-radius:4px 4px 8px 8px;font-weight:700}
+.keys button:active{background:#9d8f70}
+.dots{text-align:center;letter-spacing:6px;color:var(--uv);min-height:1.6em;font-size:18px}
+input.name{width:100%;font:22px "Gowun Batang";padding:12px;background:#0c0907;color:var(--ink);border:1px solid #4a3528;border-radius:6px;margin-top:10px}
+#scare{z-index:40;background:#000;display:none}
+#scare.show{display:flex;animation:shake .08s infinite}
+#scare svg{width:min(90vw,520px)}
+#intro,#end{z-index:30;background:radial-gradient(circle at 50% 40%,#1a0d0a,#000 70%);flex-direction:column;text-align:center}
+.big{font:400 clamp(64px,16vw,120px)/.9 "East Sea Dokdo";color:#b31b12;text-shadow:0 0 30px rgba(180,20,10,.5);margin:0}
+.lede{max-width:30em;margin:14px auto 22px;color:#c2b393}
+@keyframes pulse{50%{opacity:.55}}
+@keyframes flick{0%{opacity:1}30%{opacity:.2}60%{opacity:1}80%{opacity:.4}}
+@keyframes shake{0%{transform:translate(4px,-3px)}50%{transform:translate(-5px,4px)}100%{transform:translate(3px,2px)}}
+.fuses{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0}
+.fuses button{min-height:92px;background:#0c0b0a;border:1px solid #444;border-radius:6px;display:grid;justify-items:center;align-content:center;gap:8px}
+.fuses i{width:14px;height:14px;border-radius:50%;background:#2a1010;display:block}
+.fuses .on i{background:#ffcf5a;box-shadow:0 0 12px #ffb000}
+.fuses s{width:14px;height:30px;border-radius:3px;background:#777;display:block;text-decoration:none;transform:translateY(8px)}
+.fuses .on s{transform:translateY(-8px);background:#ccc}
+.bottles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0;text-align:center;font-size:14px}
+.bottles div{display:grid;justify-items:center;gap:4px}
+.bottles svg{width:44px;height:80px}
+.bottles b{font:700 22px "Nanum Pen Script";color:var(--uv);text-shadow:0 0 8px var(--uv);min-height:26px}
+.morse{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font:20px/1.3 "Gowun Batang";color:#2a1d14;letter-spacing:3px}
+.led{width:46px;height:46px;border-radius:50%;margin:14px auto;background:#2a0808;box-shadow:inset 0 0 8px #000}
+.led.on{background:#ff3b2a;box-shadow:0 0 26px #ff2a1a}
+.pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.pad button{min-height:52px;background:#1d1b19;border:1px solid #4a4440;border-radius:6px;font-size:20px}
+.screen{font:700 30px/1 "Gowun Batang";letter-spacing:10px;text-align:center;padding:12px;background:#0a120a;color:#7dff8a;border-radius:6px;min-height:54px;font-variant-numeric:tabular-nums}
+.xray{background:#000;border-radius:6px;padding:10px}
+.xray p{font:28px "Nanum Pen Script";color:#bfe4ff;text-shadow:0 0 10px #6ab8ff;text-align:center;margin:6px 0}
+@media(prefers-reduced-motion:reduce){.dark.flick,#scare.show,.timer.low{animation:none}}
+@media(max-width:600px){.stage{aspect-ratio:8/7.4}.say{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="hud">
+  <h1 id="ttl">3시 47분</h1>
+  <div class="timer" id="timer" aria-label="남은 시간">20:00</div>
+  <button class="btn" id="hintBtn">힌트</button>
+  <button class="btn" id="sndBtn" aria-pressed="true">소리 켬</button>
+ </div>
+ <div class="stage" id="stage">
+  <svg viewBox="0 0 800 700" preserveAspectRatio="xMidYMid slice" aria-label="어두운 아이 방">
+   <defs>
+    <pattern id="wp" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="#3a2e26"/><rect width="2" height="40" x="19" fill="#2e241d"/><circle cx="20" cy="20" r="4" fill="#45372d"/></pattern>
+    <linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1f18"/><stop offset="1" stop-color="#120c09"/></linearGradient>
+    <radialGradient id="stain"><stop offset="0" stop-color="#1a120d" stop-opacity=".8"/><stop offset="1" stop-color="#1a120d" stop-opacity="0"/></radialGradient>
+    <pattern id="cb" width="80" height="40" patternUnits="userSpaceOnUse"><rect width="80" height="40" fill="#2c2d2a"/><path d="M0 39.5 h80 M40 0 v20 M0 20 h80 M0 20 v20" stroke="#1d1e1c" stroke-width="2"/></pattern>
+    <radialGradient id="glow"><stop offset="0" stop-color="#ffe9a8" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></radialGradient>
+   </defs>
+   <g id="r1">
+   <rect width="800" height="490" fill="url(#wp)"/>
+   <ellipse cx="560" cy="80" rx="140" ry="90" fill="url(#stain)"/><ellipse cx="90" cy="460" rx="120" ry="70" fill="url(#stain)"/>
+   <polygon points="0,490 800,490 800,700 0,700" fill="url(#fl)"/>
+   <g stroke="#0e0907" stroke-width="2" opacity=".7"><line x1="0" y1="540" x2="800" y2="540"/><line x1="0" y1="610" x2="800" y2="610"/><line x1="200" y1="490" x2="120" y2="700"/><line x1="400" y1="490" x2="400" y2="700"/><line x1="600" y1="490" x2="680" y2="700"/></g>
+   <rect y="476" width="800" height="16" fill="#1c1410"/>
+   <!-- 벽 자외선 글씨 -->
+   <g class="uvt" font-family="Nanum Pen Script" fill="#b98cff" style="filter:drop-shadow(0 0 6px #9b6bff)">
+    <text x="300" y="330" font-size="38" transform="rotate(-4 300 330)">사진 뒤를 봐</text>
+    <text x="40" y="200" font-size="26" transform="rotate(6 40 200)">거울은 기억해</text>
+    <path d="M520 300 q8 -30 16 0 q6 -34 14 0 q6 -30 13 2 q8 -20 12 6 q2 40 -30 50 q-28 -6 -25 -58z" fill="none" stroke="#b98cff" stroke-width="3"/>
+   </g>
+   <!-- 시계 -->
+   <g class="obj" data-o="clock" tabindex="0" role="button" aria-label="벽시계">
+    <circle cx="130" cy="110" r="62" fill="#1b140f"/><circle cx="130" cy="110" r="54" fill="#c8b998"/><circle cx="130" cy="110" r="54" fill="none" stroke="#5a4232" stroke-width="5"/>
+    <g fill="#2a1d14"><rect x="128" y="62" width="4" height="10"/><rect x="128" y="148" width="4" height="10"/><rect x="82" y="108" width="10" height="4"/><rect x="168" y="108" width="10" height="4"/></g>
+    <line x1="130" y1="110" x2="130" y2="82" stroke="#1a110c" stroke-width="6" stroke-linecap="round" transform="rotate(113.5 130 110)"/>
+    <line x1="130" y1="110" x2="130" y2="66" stroke="#1a110c" stroke-width="3.5" stroke-linecap="round" transform="rotate(282 130 110)"/>
+    <circle cx="130" cy="110" r="4" fill="#1a110c"/>
+    <circle class="hit" cx="130" cy="110" r="70"/>
+   </g>
+   <!-- 초상화 -->
+   <g class="obj" data-o="paint" tabindex="0" role="button" aria-label="초상화">
+    <rect x="310" y="50" width="170" height="220" fill="#4a3318"/><rect x="324" y="64" width="142" height="192" fill="#1d1612"/>
+    <ellipse cx="395" cy="250" rx="62" ry="50" fill="#2f241c"/><ellipse cx="395" cy="140" rx="34" ry="44" fill="#8c7a64"/>
+    <path d="M358 130 q37 -70 74 0 l4 60 q-10 -40 -16 -50 q-25 10 -46 0 q-8 14 -18 50z" fill="#120c08"/>
+    <ellipse cx="381" cy="138" rx="6" ry="4" fill="#0a0605"/><ellipse cx="409" cy="138" rx="6" ry="4" fill="#0a0605"/>
+    <path d="M381 143 v18 M409 143 v14" stroke="#5a1010" stroke-width="2"/>
+    <path d="M384 168 q11 5 22 0" stroke="#3a2018" stroke-width="2" fill="none"/>
+    <rect class="hit" x="300" y="40" width="190" height="240"/>
+   </g>
+   <!-- 거울 -->
+   <g class="obj" data-o="mirror" tabindex="0" role="button" aria-label="거울">
+    <ellipse cx="110" cy="330" rx="66" ry="92" fill="#3b2a1a"/><ellipse cx="110" cy="330" rx="54" ry="80" fill="#2d3236"/>
+    <ellipse cx="110" cy="330" rx="54" ry="80" fill="#9aa4a8" opacity=".18"/>
+    <path d="M78 280 q20 -24 42 -20" stroke="#d6dde0" stroke-width="5" opacity=".25" fill="none" stroke-linecap="round"/>
+    <g class="uvt" transform="translate(110 340) scale(-1 1)"><text x="0" y="0" text-anchor="middle" font-family="Nanum Pen Script" font-size="36" fill="#b98cff">서윤아</text></g>
+    <ellipse class="hit" cx="110" cy="330" rx="72" ry="98"/>
+   </g>
+   <!-- 문 -->
+   <g class="obj" data-o="door" tabindex="0" role="button" aria-label="문">
+    <rect x="590" y="150" width="160" height="340" fill="#140e0a"/><rect x="602" y="162" width="136" height="328" fill="#3d2a1c"/>
+    <rect x="618" y="180" width="104" height="120" fill="none" stroke="#2a1c12" stroke-width="5"/><rect x="618" y="320" width="104" height="150" fill="none" stroke="#2a1c12" stroke-width="5"/>
+    <circle cx="714" cy="330" r="9" fill="#8a7240"/><rect x="711" y="344" width="6" height="12" rx="2" fill="#0a0604"/>
+    <path d="M640 236 l14 6 l-8 4 l16 10" stroke="#6a0d0d" stroke-width="3" fill="none"/>
+    <rect id="doorGap" x="602" y="486" width="136" height="4" fill="#000"/>
+    <rect class="hit" x="585" y="145" width="170" height="350"/>
+   </g>
+   <!-- 책상 -->
+   <rect x="250" y="400" width="300" height="20" fill="#4a3322"/><rect x="250" y="416" width="300" height="8" fill="#2a1c12"/>
+   <rect x="262" y="424" width="14" height="120" fill="#33241a"/><rect x="524" y="424" width="14" height="120" fill="#33241a"/>
+   <g class="obj" data-o="drawer" tabindex="0" role="button" aria-label="서랍">
+    <rect x="300" y="424" width="130" height="48" fill="#3a281b" stroke="#1d130c" stroke-width="3"/>
+    <rect x="352" y="440" width="26" height="16" rx="3" fill="#7a6440"/><rect x="361" y="445" width="8" height="6" fill="#1a110a"/>
+    <rect class="hit" x="295" y="420" width="140" height="58"/>
+   </g>
+   <g class="obj" data-o="diary" tabindex="0" role="button" aria-label="일기장">
+    <polygon points="440,398 520,398 512,380 446,382" fill="#5a1414"/><polygon points="446,382 512,380 508,376 450,378" fill="#d6c9a8"/>
+    <rect class="hit" x="430" y="360" width="100" height="45"/>
+   </g>
+   <g class="obj" data-o="box" tabindex="0" role="button" aria-label="오르골">
+    <rect x="290" y="360" width="80" height="40" fill="#6b4a2a"/><rect id="lid" x="286" y="350" width="88" height="14" fill="#7d5632"/>
+    <circle cx="330" cy="381" r="5" fill="#c9a85a"/><path d="M372 372 h12 v6 h-6" stroke="#9b8040" stroke-width="3" fill="none"/>
+    <rect class="hit" x="278" y="340" width="112" height="64"/>
+   </g>
+   <!-- 인형 -->
+   <g class="obj" data-o="doll" tabindex="0" role="button" aria-label="인형">
+    <ellipse cx="170" cy="640" rx="50" ry="10" fill="#000" opacity=".5"/>
+    <path d="M140 640 q30 -70 60 0z" fill="#5a2a2a"/>
+    <g id="dollHead"><circle cx="170" cy="560" r="26" fill="#c9b49a"/><path d="M144 556 q26 -40 52 0 q-6 -16 -26 -18 q-20 2 -26 18z" fill="#2a1a10"/>
+    <circle cx="161" cy="562" r="4" fill="#0a0605"/><path d="M176 558 l8 8 M184 558 l-8 8" stroke="#2a1a10" stroke-width="2"/>
+    <path id="dollMouth" d="M163 574 h14" stroke="#5a1010" stroke-width="2.5"/></g>
+    <rect class="hit" x="120" y="520" width="100" height="130"/>
+   </g>
+   </g>
+   <g id="r2" style="display:none">
+    <rect width="800" height="490" fill="url(#cb)"/>
+    <polygon points="0,490 800,490 800,700 0,700" fill="#141412"/>
+    <path d="M380 700 q30 -80 140 -130 q20 -6 30 4" stroke="#3a0c0c" stroke-width="26" fill="none" opacity=".6" stroke-linecap="round"/>
+    <rect y="18" width="800" height="14" fill="#3a332c"/><rect x="590" y="18" width="12" height="470" fill="#332c26"/>
+    <circle id="bulbGlow" cx="400" cy="80" r="200" fill="url(#glow)" opacity="0"/>
+    <line x1="400" y1="0" x2="400" y2="62" stroke="#111" stroke-width="2"/><circle id="bulb" cx="400" cy="74" r="13" fill="#3a3a30"/>
+    <g class="uvt" font-family="Nanum Pen Script" fill="#b98cff" style="filter:drop-shadow(0 0 6px #9b6bff)">
+     <text x="30" y="500" font-size="24" transform="rotate(-5 30 500)">규칙은 끊기지 않고 이어진다</text>
+     <text x="230" y="140" font-size="26" transform="rotate(3 230 140)">엄마는 순서를 한 번도 안 틀렸어</text>
+    </g>
+    <g class="obj" data-o="fuse" tabindex="0" role="button" aria-label="두꺼비집">
+     <rect x="50" y="140" width="120" height="150" fill="#44474a" stroke="#222" stroke-width="4"/><rect x="62" y="152" width="96" height="126" fill="#383b3d"/>
+     <polygon points="110,170 126,198 94,198" fill="#b8901a"/><text x="110" y="195" text-anchor="middle" font-size="18" fill="#222">!</text>
+     <g fill="#222"><rect x="74" y="220" width="10" height="34"/><rect x="88" y="220" width="10" height="34"/><rect x="102" y="220" width="10" height="34"/><rect x="116" y="220" width="10" height="34"/><rect x="130" y="220" width="10" height="34"/></g>
+     <rect class="hit" x="40" y="130" width="140" height="170"/>
+    </g>
+    <g class="obj" data-o="poster" tabindex="0" role="button" aria-label="찢어진 벽보">
+     <polygon points="40,330 160,326 164,400 140,410 150,430 118,446 120,470 44,472" fill="#b7a684" transform="rotate(-3 100 400)"/>
+     <g stroke="#3a2a1a" stroke-width="3"><line x1="58" y1="356" x2="130" y2="354"/><line x1="58" y1="376" x2="140" y2="374"/><line x1="58" y1="396" x2="120" y2="396"/><line x1="58" y1="416" x2="104" y2="416"/></g>
+     <rect class="hit" x="34" y="320" width="136" height="160"/>
+    </g>
+    <g class="obj" data-o="shelf" tabindex="0" role="button" aria-label="약장 선반">
+     <rect x="220" y="160" width="220" height="12" fill="#4a3826"/><rect x="220" y="260" width="220" height="12" fill="#4a3826"/>
+     <g><rect x="236" y="214" width="26" height="46" rx="4" fill="#8a1c1c"/><rect x="276" y="214" width="26" height="46" rx="4" fill="#c8c4b8"/><rect x="316" y="214" width="26" height="46" rx="4" fill="#1c3a8a"/><rect x="356" y="214" width="26" height="46" rx="4" fill="#b8a01c"/><rect x="396" y="214" width="26" height="46" rx="4" fill="#1c6a2c"/></g>
+     <g fill="#d9ccb0" opacity=".7"><rect x="240" y="230" width="18" height="12"/><rect x="280" y="230" width="18" height="12"/><rect x="320" y="230" width="18" height="12"/><rect x="360" y="230" width="18" height="12"/><rect x="400" y="230" width="18" height="12"/></g>
+     <rect class="hit" x="214" y="150" width="232" height="130"/>
+    </g>
+    <g class="obj" data-o="lightbox" tabindex="0" role="button" aria-label="필름 판독기">
+     <rect x="460" y="96" width="120" height="110" fill="#1a1a1a" stroke="#555" stroke-width="4"/><rect id="lbox" x="470" y="106" width="100" height="90" fill="#262b2d"/>
+     <rect class="hit" x="452" y="88" width="136" height="126"/>
+    </g>
+    <rect x="440" y="400" width="210" height="14" fill="#3b2c20"/><rect x="452" y="414" width="12" height="100" fill="#2a2018"/><rect x="626" y="414" width="12" height="100" fill="#2a2018"/>
+    <g class="obj" data-o="player" tabindex="0" role="button" aria-label="카세트 플레이어">
+     <rect x="460" y="356" width="104" height="44" rx="4" fill="#2b2b2b"/><rect x="474" y="364" width="60" height="22" fill="#111"/>
+     <circle cx="490" cy="375" r="6" fill="#444"/><circle cx="518" cy="375" r="6" fill="#444"/><circle id="ledS" cx="550" cy="372" r="4" fill="#2a0808"/>
+     <rect class="hit" x="452" y="346" width="120" height="58"/>
+    </g>
+    <g class="obj" data-o="memo" tabindex="0" role="button" aria-label="진료 수첩">
+     <polygon points="582,398 640,398 634,384 588,386" fill="#d6c9a8"/><line x1="594" y1="391" x2="626" y2="391" stroke="#5a4232"/>
+     <rect class="hit" x="574" y="370" width="72" height="34"/>
+    </g>
+    <g class="obj" data-o="safe" tabindex="0" role="button" aria-label="금고">
+     <rect x="290" y="470" width="150" height="130" fill="#34373a" stroke="#1a1b1c" stroke-width="5"/><rect x="304" y="484" width="122" height="102" fill="#2a2c2e"/>
+     <circle cx="365" cy="535" r="26" fill="#1a1b1c" stroke="#77787a" stroke-width="3"/><line x1="365" y1="535" x2="365" y2="514" stroke="#aaa" stroke-width="3"/>
+     <rect x="410" y="520" width="8" height="30" fill="#77787a"/>
+     <rect class="hit" x="284" y="464" width="162" height="142"/>
+    </g>
+    <g class="obj" data-o="phone" tabindex="0" role="button" aria-label="낡은 전화기">
+     <ellipse cx="160" cy="640" rx="60" ry="10" fill="#000" opacity=".5"/>
+     <path d="M110 640 l12 -40 h76 l12 40z" fill="#1a1a1a"/><circle cx="160" cy="618" r="14" fill="#2a2a2a" stroke="#555" stroke-width="2"/>
+     <path id="handset" d="M110 598 q50 -24 100 0 l-6 -12 q-44 -18 -88 0z" fill="#111"/>
+     <path d="M210 630 q30 10 20 40 q-6 14 -26 18" stroke="#111" stroke-width="3" fill="none"/>
+     <rect class="hit" x="96" y="570" width="140" height="84"/>
+    </g>
+    <g class="obj" data-o="door2" tabindex="0" role="button" aria-label="철문">
+     <rect x="650" y="170" width="140" height="320" fill="#3e3a36" stroke="#1a1816" stroke-width="6"/>
+     <g fill="#5a544e"><circle cx="664" cy="186" r="4"/><circle cx="776" cy="186" r="4"/><circle cx="664" cy="474" r="4"/><circle cx="776" cy="474" r="4"/></g>
+     <rect x="666" y="240" width="108" height="8" fill="#2a2724"/><rect x="666" y="410" width="108" height="8" fill="#2a2724"/>
+     <rect x="740" y="300" width="34" height="48" rx="3" fill="#1a1a1a"/><rect x="745" y="305" width="24" height="10" fill="#0a200a"/>
+     <path d="M660 330 l50 4 M664 350 l40 8" stroke="#5a0d0d" stroke-width="3"/>
+     <rect class="hit" x="644" y="164" width="152" height="332"/>
+    </g>
+   </g>
+  </svg>
+  <div class="dark" id="dark"></div>
+ </div>
+ <p class="say" id="say" aria-live="polite">불이 나갔다. 손에 쥔 건 작은 손전등뿐. 화면을 쓸어서 방을 비춰봐.</p>
+ <div class="inv" id="inv"></div>
+ <p class="foot">손가락이나 커서로 비추고, 물건을 눌러 살펴봐. 소지품을 누르면 쓰거나 볼 수 있어. 헤드폰을 권해.</p>
+</div>
+
+<div class="layer" id="modal" role="dialog" aria-modal="true"><div class="panel" id="panel"></div></div>
+
+<div class="layer show" id="intro">
+ <p class="big">3시 47분</p>
+ <p class="lede">눈을 떠보니 어린아이 방이다. 문은 잠겼고, 벽시계는 3시 47분에서 멈춰 있다. 20분 안에 비밀번호를 알아내 이 방에서 나가야 해. 시계가 다시 움직이기 전에.</p>
+ <div class="row" style="justify-content:center"><button class="btn red" id="startBtn" style="font-size:20px;padding:12px 30px">들어간다</button><button class="btn" id="start2Btn" style="display:none;font-size:18px;padding:12px 22px">두 번째 방: 지하실</button></div>
+</div>
+<div class="layer" id="end"></div>
+<div class="layer" id="scare" aria-hidden="true">
+ <svg viewBox="0 0 400 480"><ellipse cx="200" cy="230" rx="150" ry="200" fill="#d8d2c4"/><ellipse cx="200" cy="230" rx="150" ry="200" fill="#5a0000" opacity=".15"/>
+ <ellipse cx="140" cy="190" rx="34" ry="46" fill="#000"/><ellipse cx="260" cy="190" rx="34" ry="46" fill="#000"/>
+ <circle cx="146" cy="196" r="5" fill="#ff2a1a"/><circle cx="254" cy="196" r="5" fill="#ff2a1a"/>
+ <path d="M140 236 v60 M262 236 v70" stroke="#6a0000" stroke-width="5"/>
+ <ellipse cx="200" cy="340" rx="56" ry="80" fill="#000"/><path d="M60 100 q140 -120 280 0 q-40 -90 -140 -96 q-100 6 -140 96z" fill="#0b0705"/></svg>
+</div>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const stage=$('#stage'),dark=$('#dark'),say=$('#say'),modal=$('#modal'),panel=$('#panel');
+let room=1;
+const G={time:1200,started:false,done:false,sound:true,uvOn:false};
+const S={drawer:false,uv:false,photo:false,box:false,key:false,note:false,unlocked:false,doll:0,wrong:0,hint:[0,0,0],seq:[],digits:[0,0,0,0]};
+const B={power:false,fuse:[0,0,0,0,0],safe:false,digits:[0,0,0,0,0],film:false,tape:false,filmIn:false,tapeIn:false,playing:false,ring:false,pad:'',hint:[0,0,0],wrong:0,used:0};
+const NOTES={'도':261.63,'레':293.66,'미':329.63,'파':349.23,'솔':392};
+const SONG=['미','레','도','레','미','미','미'];
+const MORSE={1:'.----',2:'..---',3:'...--',4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.',0:'-----'};
+const TAPE='3861',DOOR='1683',SAFE='72941';
+const BOTTLES=[['빨강','#8a1c1c',4],['흰색','#c8c4b8',1],['파랑','#1c3a8a',7],['노랑','#b8a01c',9],['초록','#1c6a2c',2]];
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ---------- 소리 ---------- */
+let ac=null,master=null;
+function initAudio(){
+ try{
+  ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=G.sound?.55:0;master.connect(ac.destination);
+  const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=180;const g=ac.createGain();g.gain.value=.12;f.connect(g);g.connect(master);
+  [55,58.3,82.6].forEach(fr=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=fr;o.connect(f);o.start()});
+  const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=.07;lg.gain.value=90;lfo.connect(lg);lg.connect(f.frequency);lfo.start();
+  const n=ac.createBufferSource();n.buffer=noiseBuf(4);n.loop=true;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=500;bp.Q.value=.7;const ng=ac.createGain();ng.gain.value=.03;n.connect(bp);bp.connect(ng);ng.connect(master);n.start();
+ }catch(e){ac=null}
+}
+function noiseBuf(sec){const b=ac.createBuffer(1,ac.sampleRate*sec,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b}
+function tone(freq,dur,type,vol,slideTo,delay){
+ if(!ac||!G.sound)return;const t=ac.currentTime+(delay||0),o=ac.createOscillator(),g=ac.createGain();
+ o.type=type||'sine';o.frequency.setValueAtTime(freq,t);if(slideTo)o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||.2,t+.01);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+ o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.05);
+}
+function noise(dur,vol,freq,delay){
+ if(!ac||!G.sound)return;const t=ac.currentTime+(delay||0),n=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();
+ n.buffer=noiseBuf(dur+.1);f.type='bandpass';f.frequency.value=freq||1000;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+ n.connect(f);f.connect(g);g.connect(master);n.start(t);n.stop(t+dur+.1);
+}
+const snd={
+ click:()=>{tone(1800,.05,'square',.06);tone(900,.06,'square',.05,null,.05)},
+ note:k=>{tone(NOTES[k]*2,1.4,'sine',.18);tone(NOTES[k]*4.02,.8,'triangle',.05)},
+ wrong:()=>{tone(140,.5,'sawtooth',.12,70);noise(.3,.08,300)},
+ good:()=>{[0,.12,.24].forEach((d,i)=>tone([523,659,784][i],.9,'sine',.12,null,d))},
+ scare:()=>{noise(.9,.5,2200);tone(900,.9,'sawtooth',.3,60);tone(1240,.7,'square',.12,90)},
+ beat:()=>{tone(62,.18,'sine',.5,40);tone(58,.2,'sine',.4,38,.22)},
+ knock:()=>{[0,.35,.7].forEach(d=>{tone(90,.12,'triangle',.45,50,d);noise(.08,.25,400,d)})},
+ whisper:()=>{noise(1.6,.06,2600);noise(1.2,.04,3400,.4)},
+ ring:()=>{for(let i=0;i<8;i++){tone(440,.05,'square',.05,null,i*.1);tone(480,.05,'square',.05,null,i*.1+.05)}},
+ hum:()=>{tone(120,1.5,'sawtooth',.06);tone(240,1.5,'square',.02)},
+ beep:(d,delay)=>{if(!ac||!G.sound)return;const t=ac.currentTime+.05+delay,g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.9,t+.008);g.gain.setValueAtTime(.9,t+d-.01);g.gain.linearRampToValueAtTime(0,t+d);g.connect(master);
+  [['square',.35],['sine',1]].forEach(([ty,v])=>{const o=ac.createOscillator(),og=ac.createGain();o.type=ty;o.frequency.value=760;og.gain.value=v;o.connect(og);og.connect(g);o.start(t);o.stop(t+d+.02)})}
+};
+
+/* ---------- 손전등 ---------- */
+function aim(e){const r=stage.getBoundingClientRect();dark.style.setProperty('--x',(e.clientX-r.left)+'px');dark.style.setProperty('--y',(e.clientY-r.top)+'px')}
+stage.addEventListener('pointermove',aim);stage.addEventListener('pointerdown',aim);
+function flicker(){dark.classList.remove('flick');void dark.offsetWidth;dark.classList.add('flick')}
+const setR=v=>dark.style.setProperty('--r',v);
+
+/* ---------- UI ---------- */
+function tell(t){say.textContent=t}
+function open(html){panel.innerHTML=html+'<div class="row"><button class="btn" data-close>닫기</button></div>';modal.classList.add('show');const f=panel.querySelector('input,button:not([data-close])');if(f)f.focus()}
+function close(){modal.classList.remove('show')}
+modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('[data-close]'))close()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+const fmt=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+function penalty(sec){G.time=Math.max(1,G.time-sec);$('#timer').textContent=fmt(G.time)}
+function wheels(g,d){return `<div class="wheels">${d.map((v,i)=>`<div class="wheel"><button data-w="${i}" data-g="${g}" data-d="1" aria-label="${i+1}번째 올리기">▲</button><b id="${g}${i}">${v}</b><button data-w="${i}" data-g="${g}" data-d="-1" aria-label="${i+1}번째 내리기">▼</button></div>`).join('')}</div>`}
+
+const ICON={
+ uv:'<svg viewBox="0 0 26 26"><rect x="3" y="10" width="14" height="7" rx="2" fill="#4a3a5a"/><path d="M17 8 l6 -3 v16 l-6 -3z" fill="#7a5aa8"/><circle cx="22" cy="13" r="2" fill="#b98cff"/></svg>',
+ photo:'<svg viewBox="0 0 26 26"><path d="M3 5 h20 v14 l-5 3 h-15z" fill="#c9b896"/><rect x="6" y="8" width="14" height="10" fill="#3a2e26"/><circle cx="13" cy="12" r="3" fill="#8c7a64"/></svg>',
+ key:'<svg viewBox="0 0 26 26"><circle cx="7" cy="13" r="5" fill="none" stroke="#9b7a40" stroke-width="3"/><path d="M12 13 h12 M20 13 v4 M23 13 v3" stroke="#9b7a40" stroke-width="3"/></svg>',
+ note:'<svg viewBox="0 0 26 26"><path d="M5 3 h13 l3 3 v17 h-16z" fill="#c9b896"/><path d="M8 10 h10 M8 14 h8 M8 18 h9" stroke="#5a4232" stroke-width="1.5"/></svg>',
+ film:'<svg viewBox="0 0 26 26"><rect x="3" y="4" width="20" height="18" fill="#1a2a34"/><path d="M13 7 v12 M8 10 q5 2 10 0 M8 14 q5 2 10 0" stroke="#bfe4ff" stroke-width="1.5" fill="none"/></svg>',
+ tape:'<svg viewBox="0 0 26 26"><rect x="2" y="6" width="22" height="14" rx="2" fill="#2a2a2a"/><circle cx="9" cy="13" r="3" fill="#888"/><circle cx="17" cy="13" r="3" fill="#888"/><rect x="5" y="8" width="16" height="3" fill="#c9b896"/></svg>'
+};
+function renderInv(){
+ const it=[],uvl=G.uvOn?'자외선 손전등 (켜짐)':'자외선 손전등';
+ if(room===1){
+  if(S.uv)it.push(['uv',uvl]);if(S.photo)it.push(['photo','찢어진 사진']);if(S.key)it.push(['key','녹슨 열쇠']);if(S.note)it.push(['note','구겨진 쪽지']);
+ }else{
+  it.push(['uv',uvl]);if(B.film&&!B.filmIn)it.push(['film','엑스레이 필름']);if(B.tape&&!B.tapeIn)it.push(['tape','카세트테이프']);
+ }
+ $('#inv').innerHTML=it.length?it.map(([k,l])=>`<button class="item${k==='uv'&&G.uvOn?' on':''}" data-i="${k}">${ICON[k]}<span>${l}</span></button>`).join(''):'<span class="empty">소지품 없음</span>';
+}
+$('#inv').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b)useItem(b.dataset.i)});
+
+function useItem(k){
+ snd.click();
+ if(k==='uv'){G.uvOn=!G.uvOn;document.body.classList.toggle('uv',G.uvOn);renderInv();
+  tell(G.uvOn?'보랏빛이 번진다. 보이지 않던 것들이 떠오른다.':'자외선을 껐다. 다시 평범한 어둠.');return}
+ if(k==='photo'){open(`<h2>찢어진 사진</h2>
+  <svg viewBox="0 0 300 200" style="width:100%;background:#2a221c;border-radius:4px"><rect x="20" y="16" width="260" height="168" fill="#8c7d68"/><rect x="30" y="26" width="240" height="148" fill="#3a3028"/><circle cx="150" cy="80" r="28" fill="#a8957a"/><path d="M110 174 q40 -80 80 0z" fill="#6a4a4a"/><path d="M220 16 l60 0 l0 60 l-30 -10 l-10 20z" fill="#2a221c"/><path d="M128 72 l44 18 M128 90 l44 -18" stroke="#1a110c" stroke-width="4"/></svg>
+  <p>얼굴이 긁혀 지워진 여자아이. 아래에 볼펜 글씨 <b>"서○"</b>, 뒷글자는 찢겨 나갔다.</p>
+  ${G.uvOn?'<div class="uvnote">뒷면: 엄마가 불러준 자장가<br>미 레 도 레 미 미 미</div>':'<p style="color:var(--dim)">뒷면은 비어 있는 것 같다… 정말 그럴까.</p>'}`);return}
+ if(k==='key'){tell('손바닥만 한 녹슨 열쇠. 이 방에 열쇠 구멍은 하나뿐이다.');return}
+ if(k==='note'){open(`<h2>구겨진 쪽지</h2><div class="note">문 밖으로 나가고 싶으면<br>내 이름을 불러줘.<br>엄마는 끝까지 못 불렀어.</div>`);return}
+ if(k==='film'){tell('뼈가 찍힌 필름. 빛에 비춰봐야 뭔가 보일 것 같다.');return}
+ if(k==='tape'){tell('라벨에 삐뚤빼뚤한 글씨: "엄마 목소리". 들으려면 재생할 기계가 필요하다.')}
+}
+
+/* ---------- 1번 방 ---------- */
+const OBJ1={
+ clock(){open(`<h2>멈춘 벽시계</h2><p>초침이 떨리기만 할 뿐 움직이지 않는다. 짧은 바늘은 3과 4 사이, 긴 바늘은 47분을 가리킨다.</p><p style="color:var(--dim)">째깍… 소리는 계속 들리는데.</p>`)},
+ diary(){open(`<h2>일기장</h2><div class="note">11월 26일<br>엄마가 또 그 노래를 불렀다. 시계가 멈춘 바로 그 시각에 엄마가 나를 불렀고, 나는 대답하지 않았다.<br><br>소중한 건 서랍에 넣었어. 숫자 네 개로 잠갔지. <u>그 시각 그대로.</u></div>`)},
+ drawer(){
+  if(S.drawer){open(`<h2>서랍</h2><p>텅 비었다. 바닥에 손톱으로 긁은 자국만 남아 있다.</p>`);return}
+  open(`<h2>잠긴 서랍</h2><p id="lockMsg">네 자리 숫자 자물쇠가 달려 있다.</p>${wheels('d',S.digits)}<div class="row"><button class="btn red" id="tryLock">열어본다</button></div>`);
+ },
+ box(){
+  if(S.box){open(`<h2>오르골</h2><p>뚜껑이 열린 채 태엽만 천천히 돈다. 아무도 감지 않았는데.</p>`);snd.note('미');return}
+  S.seq=[];
+  open(`<h2>오르골</h2><p>뚜껑이 잠겨 있다. 앞면에 작은 건반 다섯 개. 맞는 노래를 연주하면 열릴 것 같다.</p><div class="dots" id="dots">&nbsp;</div><div class="keys">${Object.keys(NOTES).map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="row"><button class="btn" id="resetSeq">처음부터</button></div>`);
+ },
+ mirror(){open(G.uvOn?`<h2>거울</h2><p>보랏빛 아래 김 서린 거울에 손가락 글씨가 떠오른다. 거꾸로 쓰여 있다.</p><div class="uvnote"><span class="mirror">서윤아</span></div><p style="color:var(--dim)">거울 속 내 뒤에 누군가 서 있는 것 같다.</p>`:`<h2>거울</h2><p>뿌옇게 김이 서려 있다. 손가락으로 무언가 썼다 지운 흔적. 보통 빛으로는 읽을 수 없다.</p>`);if(G.uvOn)snd.whisper()},
+ paint(){open(`<h2>엄마의 초상화</h2><p>그림 속 여자의 눈가가 젖어 있다. 만져보니 정말 축축하다.</p>${G.uvOn?'<div class="uvnote">미안해. 한 번만 더 불러볼걸.</div>':''}`)},
+ doll(){
+  S.doll++;
+  if(S.doll===1)tell('낡은 헝겊 인형. 단추 눈 하나가 떨어져 있다.');
+  else if(S.doll===2){tell('인형이… 아까와 다른 쪽을 보고 있다.');$('#dollHead').setAttribute('transform','rotate(-18 170 560)')}
+  else if(S.doll===3){$('#dollMouth').setAttribute('d','M160 572 q10 12 20 0');scare('뒤돌아보지 마.')}
+  else tell('인형은 이제 웃은 채로 움직이지 않는다.');
+ },
+ door(){
+  if(!S.key){open(`<h2>잠긴 문</h2><p>손잡이가 돌아가지 않는다. 녹슨 열쇠 구멍 하나.</p><p style="color:var(--dim)">문틈 아래로 차가운 바람이… 그리고 숨소리.</p>`);snd.knock();return}
+  if(!S.unlocked){S.unlocked=true;snd.click();tell('녹슨 열쇠가 끼익 돌아갔다. 하지만 문은 아직 열리지 않는다.')}
+  open(`<h2>문 너머의 목소리</h2><p>열쇠는 돌아갔지만 문이 움직이지 않는다. 문 너머에서 아이 목소리가 들린다.</p><p><i>"내 이름을 불러줘."</i></p><form id="nameForm"><input class="name" id="nameIn" autocomplete="off" placeholder="이름을 부른다" aria-label="이름"><div class="row"><button class="btn red" type="submit">부른다</button></div></form>`);
+ }
+};
+
+/* ---------- 2번 방: 지하실 ---------- */
+function bottleSvg(c){return `<svg viewBox="0 0 44 80"><rect x="14" y="2" width="16" height="10" fill="#222"/><rect x="6" y="12" width="32" height="64" rx="6" fill="${c}"/><rect x="10" y="32" width="24" height="22" fill="#d9ccb0" opacity=".85"/></svg>`}
+function fuseHtml(){return `<div class="fuses">${B.fuse.map((v,i)=>`<button data-f="${i}" class="${v?'on':''}" aria-label="${i+1}번 스위치 ${v?'켜짐':'꺼짐'}"><i></i><s></s><span>${i+1}</span></button>`).join('')}</div>`}
+const OBJ2={
+ fuse(){
+  if(B.power){open(`<h2>두꺼비집</h2><p>다섯 개의 등이 모두 켜져 있다. 낮게 웅웅거리는 소리.</p>`);return}
+  open(`<h2>두꺼비집</h2><p>스위치 다섯 개, 위에 등 다섯 개. 녹슨 판에 긁힌 글씨: <i>"전부 켜야 불이 들어온다."</i></p><div id="fuseBox">${fuseHtml()}</div><div class="row"><button class="btn" id="fuseReset">전부 내린다</button></div>`);
+ },
+ poster(){open(`<h2>찢어진 벽보</h2><p>통신 교육용 벽보. 절반 이상이 뜯겨 나갔다.</p><div class="note"><div class="morse">${[1,2,3,4,5].map(n=>`<span>${n}</span><span>${MORSE[n].replace(/\./g,'•').replace(/-/g,'—')}</span>`).join('')}<span>6</span><span style="opacity:.35">(찢겨 나감)</span></div></div>`)},
+ shelf(){open(`<h2>약장</h2><p>라벨은 물에 번져 이름도 용량도 읽을 수 없다. 병은 다섯 개.</p><div class="bottles">${BOTTLES.map(([n,c,v])=>`<div>${bottleSvg(c)}<span>${n}</span><b>${G.uvOn?v:''}</b></div>`).join('')}</div>${G.uvOn?'':'<p style="color:var(--dim)">병 바닥에 무언가 긁혀 있는 것 같지만 보이지 않는다.</p>'}`)},
+ memo(){open(`<h2>진료 수첩</h2><div class="note">엄마는 밤마다 같은 순서로 다섯 알을 삼켰다.<br>· 흰 약은 언제나 마지막.<br>· 초록을 삼키면 곧바로 노랑.<br>· 파랑은 노랑보다 먼저.<br>· 빨강은 처음도, 끝도 아니다.<br>· 빨강 바로 다음에 초록이 온 적은 없다.<br><br>금고엔 그 순서대로 넣어두었다.</div>`)},
+ safe(){
+  if(B.safe){open(`<h2>금고</h2><p>비어 있다. 안쪽 벽에 작은 손자국 다섯 개.</p>`);return}
+  open(`<h2>금고</h2><p id="lockMsg">다섯 자리 다이얼. 한 번 틀릴 때마다 안에서 무언가 긁는 소리가 커진다.</p>${wheels('s',B.digits)}<div class="row"><button class="btn red" id="trySafe">돌려본다</button></div>`);
+ },
+ lightbox(){
+  if(!B.power){open(`<h2>필름 판독기</h2><p>병원에서 쓰던 엑스레이 판독기. 전원이 들어오지 않는다.</p>`);return}
+  if(!B.filmIn&&!B.film){open(`<h2>필름 판독기</h2><p>희미하게 빛나는 빈 판. 무언가를 끼우는 집게가 달려 있다.</p>`);return}
+  if(!B.filmIn){B.filmIn=true;renderInv();snd.click()}
+  open(`<h2>필름 판독기</h2><div class="xray"><svg viewBox="0 0 300 220" style="width:100%"><g stroke="#bfe4ff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".85"><path d="M150 210 v-70"/><path d="M150 140 q-40 -10 -56 -70 M150 140 q-16 -20 -20 -100 M150 140 q10 -30 14 -110 M150 140 q30 -20 40 -96 M150 140 q50 0 80 -40"/></g><circle cx="148" cy="128" r="10" fill="#fff" opacity=".9"/></svg><p><span class="mirror">들은 것은 거꾸로</span></p></div><p>작은 아이의 손. 손바닥 한가운데 무언가 삼킨 것처럼 하얀 점이 있다.</p>`);
+ },
+ player(){
+  if(!B.power){open(`<h2>카세트 플레이어</h2><p>버튼을 눌러도 반응이 없다. 전원이 필요하다.</p>`);return}
+  if(!B.tape&&!B.tapeIn){open(`<h2>카세트 플레이어</h2><p>빈 데크가 입을 벌리고 있다.</p>`);return}
+  if(!B.tapeIn){B.tapeIn=true;renderInv();snd.click()}
+  open(`<h2>카세트 플레이어</h2><p>"엄마 목소리" 테이프. 재생하면 목소리 대신 삐 소리와 빨간 불빛만 새어 나온다.</p><div class="led" id="led"></div><div class="row"><button class="btn red" id="play">재생</button></div><p style="color:var(--dim);font-size:14px">소리를 꺼도 불빛으로 읽을 수 있다.</p>`);
+ },
+ phone(){
+  if(B.ring){B.ring=false;$('#handset').setAttribute('transform','rotate(-20 160 598)');snd.whisper();tell('수화기 너머에서 엄마 목소리가 속삭인다. "…약 먹을 시간이야. 순서 틀리지 마."')}
+  else tell('선이 잘린 전화기. 그런데 다이얼이 따뜻하다.');
+ },
+ door2(){
+  open(`<h2>철문</h2><p>네 자리 전자 자물쇠. 화면 위에 긁힌 글씨: <i>"엄마 목소리를 들은 사람만."</i></p><div class="screen" id="screen">${B.pad.padEnd(4,'_')}</div><div class="pad">${[1,2,3,4,5,6,7,8,9,'지움',0,'확인'].map(k=>`<button data-p="${k}">${k}</button>`).join('')}</div>`);
+ }
+};
+function playTape(){
+ if(B.playing)return;B.playing=true;const led=$('#led'),ledS=$('#ledS');let t=0;const U=.16;if(!ac)initAudio();if(ac&&ac.resume)ac.resume();
+ const flash=(on,at)=>setTimeout(()=>{if(led)led.classList.toggle('on',on);ledS.setAttribute('fill',on?'#ff3b2a':'#2a0808')},at*1000);
+ for(const ch of TAPE){for(const s of MORSE[ch]){const d=s==='.'?U:U*3;snd.beep(d,t);flash(true,t);flash(false,t+d);t+=d+U}t+=U*5}
+ setTimeout(()=>{B.playing=false;tell('테이프가 끝났다. 마지막에 아주 작게, 아이가 웃는 소리.')},t*1000+300);
+}
+
+/* ---------- 클릭 처리 ---------- */
+stage.addEventListener('click',e=>{const g=e.target.closest('.obj');if(g&&G.started&&!G.done){snd.click();(room===1?OBJ1:OBJ2)[g.dataset.o]()}});
+stage.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.closest('.obj')){e.preventDefault();e.target.closest('.obj').dispatchEvent(new MouseEvent('click',{bubbles:true}))}});
+
+panel.addEventListener('click',e=>{
+ const w=e.target.closest('[data-w]');
+ if(w){const arr=w.dataset.g==='d'?S.digits:B.digits,i=+w.dataset.w;arr[i]=(arr[i]+ +w.dataset.d+10)%10;$('#'+w.dataset.g+i).textContent=arr[i];snd.click();return}
+ if(e.target.id==='tryLock'){
+  if(S.digits.join('')==='0347'){S.drawer=true;S.uv=true;S.photo=true;snd.good();renderInv();close();tell('딸깍. 서랍 안에 보라색 손전등과 찢어진 사진. 손전등을 눌러 켜봐.')}
+  else{S.wrong++;snd.wrong();$('#lockMsg').textContent=S.wrong>2?'자물쇠 너머에서 누군가 손톱으로 긁는다. 시각… 그 시각 그대로.':'자물쇠가 꿈쩍도 하지 않는다.';if(S.wrong>2)flicker()}
+  return}
+ if(e.target.id==='trySafe'){
+  if(B.digits.join('')===SAFE){B.safe=true;B.film=true;B.tape=true;snd.good();renderInv();close();tell('금고가 열렸다. 엑스레이 필름 한 장과 카세트테이프 하나.')}
+  else{B.wrong++;penalty(45);snd.wrong();flicker();$('#lockMsg').textContent=B.wrong>2?'긁는 소리가 손톱이 아니라 이빨 같다. (−45초)':'다이얼이 헛돈다. 안쪽에서 긁는 소리. (−45초)';if(B.wrong===3)setTimeout(()=>scare('엄마는 순서를 안 틀렸어.'),400)}
+  return}
+ const f=e.target.closest('[data-f]');
+ if(f){const i=+f.dataset.f;[i-1,i,i+1].forEach(j=>{if(j>=0&&j<5)B.fuse[j]^=1});tone(300+i*60,.08,'square',.08);$('#fuseBox').innerHTML=fuseHtml();
+  if(B.fuse.every(v=>v)){B.power=true;snd.hum();setTimeout(()=>{snd.good();close();powerOn()},500)}return}
+ if(e.target.id==='fuseReset'){B.fuse=[0,0,0,0,0];$('#fuseBox').innerHTML=fuseHtml();return}
+ if(e.target.id==='play'){playTape();return}
+ const p=e.target.closest('[data-p]');
+ if(p){const k=p.dataset.p;snd.click();
+  if(k==='지움')B.pad='';
+  else if(k==='확인'){
+   if(B.pad===DOOR){close();win();return}
+   penalty(45);const was=B.pad;B.pad='';
+   if(was===TAPE){close();scare('들은 그대로는 안 돼.');return}
+   snd.wrong();flicker();$('#screen').textContent='DENIED';setTimeout(()=>{const s=$('#screen');if(s)s.textContent='____'},700);return}
+  else if(B.pad.length<4)B.pad+=k;
+  $('#screen').textContent=B.pad.padEnd(4,'_');return}
+ const k=e.target.closest('[data-k]');
+ if(k){const n=k.dataset.k;snd.note(n);S.seq.push(n);const i=S.seq.length-1;
+  $('#dots').textContent=S.seq.map(()=>'●').join('');
+  if(S.seq[i]!==SONG[i]){S.seq=[];setTimeout(()=>{snd.wrong();$('#dots').textContent='음이 뒤틀린다…'},350)}
+  else if(S.seq.length===SONG.length){S.box=true;S.key=true;S.note=true;$('#lid').setAttribute('transform','rotate(-28 286 357)');setTimeout(()=>{snd.good();renderInv();close();tell('오르골 뚜껑이 열렸다. 녹슨 열쇠와 구겨진 쪽지가 들어 있다.')},700)}
+  return}
+ if(e.target.id==='resetSeq'){S.seq=[];$('#dots').innerHTML='&nbsp;'}
+});
+panel.addEventListener('submit',e=>{
+ e.preventDefault();const v=$('#nameIn').value.replace(/\s/g,'');
+ if(v==='서윤'||v==='서윤아'){close();win()}
+ else{close();penalty(30);scare(v?'그건 내 이름이 아니야.':'…부르지도 않을 거야?')}
+});
+function powerOn(){
+ $('#bulb').setAttribute('fill','#ffe9a8');$('#bulbGlow').setAttribute('opacity','1');$('#lbox').setAttribute('fill','#dfeef5');setR('29%');flicker();
+ tell('철컥. 천장 전구가 깜빡이며 켜졌다. 판독기와 플레이어에 불이 들어온다.');
+}
+
+/* ---------- 연출 ---------- */
+function scare(msg){
+ const s=$('#scare');snd.scare();s.classList.add('show');try{navigator.vibrate&&navigator.vibrate([80,40,160])}catch(e){}
+ setTimeout(()=>{s.classList.remove('show');flicker();tell(msg)},750);
+}
+const HINTS={
+ 1:[['시계와 책상 위 일기장을 살펴봐.','일기장에 "그 시각 그대로 숫자 네 개"라고 적혀 있어. 시계가 멈춘 시각은?','서랍 비밀번호는 0347.'],
+  ['서랍에서 나온 손전등을 소지품에서 눌러 켜고 방을 비춰봐.','벽에 보랏빛 글씨: "사진 뒤를 봐". 손전등을 켠 채 사진을 열어봐.','오르골 건반: 미 레 도 레 미 미 미.'],
+  ['열쇠는 문에 쓰고, 쪽지는 이름을 원해. 사진 속 이름은 "서○".','벽에 "거울은 기억해". 자외선을 켜고 거울을 눌러봐. 글씨는 거꾸로야.','문 앞에서 "서윤"을 불러.']],
+ 2:[['전기가 없으면 이 방의 절반은 죽어 있어. 왼쪽 벽 두꺼비집.','스위치 하나를 누르면 양옆 스위치도 같이 뒤집혀. 가장자리부터 생각해봐.','1번과 4번 스위치를 한 번씩.'],
+  ['진료 수첩의 조건으로 약 먹는 순서를 정해. 숫자는 약병 바닥에 있어.','약병 숫자는 자외선으로만 보여. 흰색이 5번째, 초록·노랑은 붙어 있고, 파랑이 노랑보다 앞.','순서는 파랑·초록·노랑·빨강·흰색, 금고는 72941.'],
+  ['테이프는 플레이어에, 필름은 판독기에. 둘 다 전원이 필요해.','벽보의 1~5는 점과 선이 한 칸씩 밀려나는 규칙이야. 6부터는 선이 앞에서 늘어나. 필름 글씨는 거울 글씨.','테이프는 3·8·6·1. 거꾸로 입력하면 1683.']]
+};
+$('#hintBtn').addEventListener('click',()=>{
+ if(!G.started||G.done)return;
+ const H=room===1?S.hint:B.hint,st=room===1?(!S.drawer?0:!S.box?1:2):(!B.power?0:!B.safe?1:2),i=Math.min(H[st],2);H[st]++;
+ if(room===2){penalty(60);B.used++}
+ open(`<h2>힌트 ${i+1}/3</h2><p>${HINTS[room][st][i]}</p>${room===2?'<p style="color:#ff7a6a">지하실에서는 힌트 하나에 60초가 사라진다.</p>':''}${i<2?'<p style="color:var(--dim)">한 번 더 누르면 더 자세한 힌트.</p>':''}`);
+});
+$('#sndBtn').addEventListener('click',e=>{G.sound=!G.sound;e.currentTarget.textContent=G.sound?'소리 켬':'소리 끔';e.currentTarget.setAttribute('aria-pressed',G.sound);if(master)master.gain.value=G.sound?.55:0});
+
+let tick=null,amb=null;
+function unlockIOS(){
+ try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+ try{const sr=8000,n=sr,buf=new ArrayBuffer(44+n*2),v=new DataView(buf),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  const a=new Audio(URL.createObjectURL(new Blob([buf],{type:'audio/wav'})));a.loop=true;a.setAttribute('playsinline','');const p=a.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}
+}
+function start(n){
+ unlockIOS();
+ room=n;['#intro','#end'].forEach(s=>$(s).classList.remove('show'));
+ G.started=true;G.done=false;G.time=n===1?1200:900;G.uvOn=false;document.body.classList.remove('uv');
+ $('#r1').style.display=n===1?'':'none';$('#r2').style.display=n===2?'':'none';
+ $('#ttl').textContent=n===1?'3시 47분':'지하실';$('#timer').textContent=fmt(G.time);$('#timer').classList.remove('low');
+ setR(n===1?'24%':'15%');
+ tell(n===1?'불이 나갔다. 손에 쥔 건 작은 손전등뿐. 화면을 쓸어서 방을 비춰봐.':'문 너머는 복도가 아니라 지하로 내려가는 계단이었다. 등 뒤에서 문이 닫혔다. 손전등 불빛이 더 약해졌다. 남은 시간 15분.');
+ renderInv();if(!ac)initAudio();if(ac&&ac.resume)ac.resume();
+ clearInterval(tick);clearInterval(amb);
+ tick=setInterval(()=>{if(G.done)return;G.time--;$('#timer').textContent=fmt(G.time);
+  if(G.time<=180){$('#timer').classList.add('low');if(G.time%2===0)snd.beat()}
+  if(G.time<=0)lose()},1000);
+ amb=setInterval(()=>{if(G.done||modal.classList.contains('show'))return;const r=Math.random();
+  if(room===2&&r<.4){B.ring=true;snd.ring();setTimeout(()=>{if(B.ring)snd.ring()},1400);setTimeout(()=>{B.ring=false},7000);tell('따르릉. 선이 잘린 전화기가 울린다.')}
+  else if(r<.6){snd.knock();tell(room===1?'쿵. 쿵. 쿵. 문 저편에서 누군가 두드린다.':'쿵. 쿵. 쿵. 위층에서… 아니, 금고 안에서?')}
+  else{flicker();snd.whisper()}},room===2?20000:26000);
+}
+function finish(html,btns){G.done=true;clearInterval(tick);clearInterval(amb);const e=$('#end');e.innerHTML=html+`<div class="row" style="justify-content:center">${btns}</div>`;e.classList.add('show');
+ const n=$('#next');if(n)n.addEventListener('click',()=>start(2));
+ const a=$('#again');if(a)a.addEventListener('click',()=>location.reload());
+ const r=$('#retry2');if(r)r.addEventListener('click',()=>{store.set('r1','1');location.hash='basement';location.reload()})}
+function win(){
+ snd.good();
+ if(room===1){
+  $('#doorGap').setAttribute('fill','#f3e6c4');store.set('r1','1');
+  const used=1200-G.time,h=S.hint.reduce((a,b)=>a+b,0);
+  setTimeout(()=>finish(`<p class="big" style="color:#e9dcc0">1번 방 탈출</p><p class="lede">"서윤아." 이름을 부르자 문이 천천히 열렸다. 하지만 문 너머는 복도가 아니었다. 아래로, 아래로 이어지는 계단. 아래에서 오래된 전구가 깜빡인다.<br><br>걸린 시간 ${fmt(used)} · 힌트 ${h}번</p>`,'<button class="btn red" id="next" style="font-size:18px;padding:12px 26px">지하실로 내려간다</button><button class="btn" id="again">처음부터</button>'),900);
+ }else{
+  store.set('r2','1');const used=900-G.time;
+  setTimeout(()=>finish(`<p class="big" style="color:#e9dcc0">탈출</p><p class="lede">삐— 철문이 열렸다. 계단 위로 새벽 공기가 쏟아진다. 마지막 계단에서 작은 손이 내 손을 잡았다.<br><i>"엄마, 이번엔 같이 가."</i><br><br>지하실 ${fmt(used)} · 힌트 ${B.used}번</p>`,'<button class="btn" id="again">처음부터 다시</button>'),900);
+ }
+}
+function lose(){snd.scare();
+ if(room===1)finish(`<p class="big">3시 48분</p><p class="lede">째깍. 시계가 다시 움직이기 시작했다. 문은 끝내 열리지 않았고, 이제 이 방에는 아이가 둘이다.</p>`,'<button class="btn red" id="again">다시 들어간다</button>');
+ else finish(`<p class="big">약 먹을 시간</p><p class="lede">전구가 터졌다. 어둠 속에서 차가운 손이 입을 벌리고 알약 다섯 개를 밀어 넣는다. 하나, 둘, 셋…</p>`,'<button class="btn red" id="retry2">지하실 다시</button><button class="btn" id="again">처음부터</button>');
+}
+$('#startBtn').addEventListener('click',()=>start(1));
+$('#start2Btn').addEventListener('click',()=>start(2));
+if(store.get('r1')||location.hash==='#basement'){$('#start2Btn').style.display=''}
+renderInv();
+}
+</script>
+</body>
+</html>
